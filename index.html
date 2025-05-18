@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Motor de 4 Tiempos</title>
+  <style>
+    body { margin: 0; background: #111; color: #fff; font-family: sans-serif; text-align: center; }
+    canvas { display: block; margin: 0 auto; background: #222; }
+    .controls { margin-top: 10px; }
+    button { margin: 0 5px; padding: 10px 15px; font-size: 16px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Simulación del Motor de 4 Tiempos</h1>
+  <canvas id="motorCanvas" width="600" height="700"></canvas>
+  <div class="controls">
+    <button onclick="togglePause()">⏸️ Pausa</button>
+    <button onclick="setSpeed(1)">🟢 Lento</button>
+    <button onclick="setSpeed(2)">🟡 Normal</button>
+    <button onclick="setSpeed(3)">🔴 Rápido</button>
+  </div>
+  <script>
+    const canvas = document.getElementById('motorCanvas');
+    const ctx = canvas.getContext('2d');
+    let frame = 0;
+    let paused = false;
+    let speed = 2;
+    const stages = ["Admisión", "Compresión", "Combustión", "Escape"];
+    let particles = [];
+
+    class Particle {
+      constructor(pistonY) {
+        this.x = 300;
+        this.y = pistonY - 10;
+        const angle = Math.random() * 2 * Math.PI;
+        const radius = Math.random() * 2;
+        this.dx = Math.cos(angle) * radius;
+        this.dy = Math.sin(angle) * radius;
+        this.life = 30 + Math.random() * 30;
+      }
+
+      update() {
+        this.x += this.dx;
+        this.y += this.dy;
+        this.life--;
+      }
+    }
+
+    function drawCylinder(y) {
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(200, 100, 200, 400);
+
+      ctx.fillStyle = '#ccc';
+      ctx.fillRect(200, y, 200, 50);
+
+      ctx.beginPath();
+      ctx.strokeStyle = '#888';
+      ctx.lineWidth = 6;
+      ctx.moveTo(300, y + 50);
+      ctx.lineTo(300, 580);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.strokeStyle = '#999';
+      ctx.lineWidth = 12;
+      ctx.arc(300, 600, 30, 0, 2 * Math.PI);
+      ctx.stroke();
+    }
+
+    function drawValves(stage) {
+      ctx.beginPath();
+      ctx.fillStyle = stage === "Admisión" ? 'blue' : 'gray';
+      ctx.arc(230, 110, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.fillStyle = stage === "Escape" ? 'red' : 'gray';
+      ctx.arc(370, 110, 10, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawParticles() {
+      for (let p of particles) {
+        ctx.beginPath();
+        ctx.fillStyle = 'orange';
+        ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function animate() {
+      if (!paused) frame++;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const stageIndex = Math.floor(frame / (30 / speed)) % 4;
+      const stage = stages[stageIndex];
+
+      let pistonY;
+      if (stage === "Admisión") {
+        pistonY = 100 + (frame % (30 / speed)) * (200 / (30 / speed));
+        particles = [];
+      } else if (stage === "Compresión") {
+        pistonY = 300 - (frame % (30 / speed)) * (200 / (30 / speed));
+        particles = [];
+      } else if (stage === "Combustión") {
+        pistonY = 100;
+        if (frame % (30 / speed) === 0) {
+          for (let i = 0; i < 40; i++) particles.push(new Particle(pistonY));
+        }
+        for (let p of particles) p.update();
+        particles = particles.filter(p => p.life > 0);
+      } else if (stage === "Escape") {
+        pistonY = 100 + (frame % (30 / speed)) * (200 / (30 / speed));
+        particles = [];
+      }
+
+      drawCylinder(pistonY);
+      drawValves(stage);
+      drawParticles();
+
+      ctx.fillStyle = 'white';
+      ctx.font = '24px sans-serif';
+      ctx.fillText(`Etapa: ${stage}`, 300, 40);
+
+      if (stage === "Combustión") {
+        ctx.fillStyle = 'orange';
+        ctx.font = 'bold 28px sans-serif';
+        ctx.fillText('💥 Combustión 💥', 300, 500);
+        ctx.fillStyle = 'lime';
+        ctx.font = '16px sans-serif';
+        ctx.fillText('C8H18 + 12.5 O2 → 8 CO2 + 9 H2O', 300, 530);
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function togglePause() {
+      paused = !paused;
+    }
+
+    function setSpeed(s) {
+      speed = s;
+    }
+
+    animate();
+  </script>
+</body>
+</html>
